@@ -1,0 +1,171 @@
+---
+title: "Coursera Practical Machine Learning Project"
+author: "Srinivas Nakka"
+date: "January 15, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+
+## Getting and Cleaning Data
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. 
+
+### Data Processing
+
+Reading the Data
+
+```{r echo=TRUE}
+
+suppressWarnings(suppressMessages(library(caret)))
+suppressWarnings(suppressMessages(library(rpart)))
+suppressWarnings(suppressMessages(library(rattle)))
+suppressWarnings(suppressMessages(library(randomForest)))
+suppressWarnings(suppressMessages(library(gbm)))
+suppressWarnings(suppressMessages(library(reshape2)))
+
+training <- read.csv("~/pml-training.csv", na.strings = c("NA","","#DIV/0!"))
+testing <- read.csv("~/pml-testing.csv", na.strings = c("NA","","#DIV/0!"))
+
+```
+
+Cleaning data
+
+In order to find the less effective predictors we need to verify the number of values exist for each predictor and then decide. We will check how many "NA" values exist for each predictor and verify.
+
+```{r echo=TRUE}
+
+sort(unique(colSums(is.na(training))))
+
+```
+
+The "NA" values in a column are either zero or 19216 and above out of total 19622 values. That means 97.8% or more. So the contribution of these predictors is very negligible, hence these need not be considered in our training method. The predictors which have zero 'NA'values only are considered.
+
+```{r echo=TRUE}
+
+training_clean <- training[ ,colSums(is.na(training)) == 0]
+
+```
+
+Assuming the first seven predictors are user name, time stamps etc. will not contribute anything in the output. Therefore these can also be removed
+
+```{r echo=TRUE}
+
+training_clean <- training_clean[,-c(1:7)]
+
+```
+
+Test data also should be contained the same columns as that of training data except the last  variable "classe". After cleanup training_clean has 53 predictors. So the test data after cleanup should be 
+
+```{r echo=TRUE}
+
+test_clean <- testing[names(training_clean[,-53])]
+
+```
+
+For validation purpose, the cleaned training data is further divided into two parts. 70% of data is used for training and 30% of data is used for validation.
+
+```{r echo=TRUE}
+
+set.seed(5678)
+inTrain <- createDataPartition(training_clean$classe, p = 0.7,  list = FALSE)
+trainData <- training_clean[inTrain,]
+validData <- training_clean[-inTrain,]
+
+```
+
+## Model Selection
+
+For cross validation purpose, k-Fold method is used with k=5 instead the default value 10.The trainControl is defined for k=5
+
+```{r echo=TRUE}
+
+ctrl <- trainControl(method="cv", number = 5)
+
+```
+
+Prediction with trees, randon Forest, and boosted predicted with "gbm" methods are used and compared the accuracy and out of sample errors of each method. The method which has the less out of sample error is selected.
+
+### Prediction with Decision Trees
+
+```{r echo=TRUE}
+
+set.seed(5678)
+modRpart <- train(classe ~ ., method = "rpart", data = trainData, trControl = ctrl)
+
+```
+
+```{r echo=TRUE}
+
+fancyRpartPlot(modRpart$finalModel)
+
+```
+
+```{r echo=TRUE}
+
+predRpart <- predict(modRpart,validData)
+confRpart <- confusionMatrix(validData$classe,predRpart)
+confRpart
+confRpart$overall[1]
+
+```
+
+### Prediction with Random Forest Method
+
+```{r echo=TRUE}
+
+set.seed(5678)
+modRF <- train(classe~ ., data=trainData, method="rf", prox=TRUE, trControl = ctrl)
+predRF <- predict(modRF,validData)
+confRF <- confusionMatrix(validData$classe,predRF)
+confRF
+confRF$overall[1]
+
+```
+
+### Prediction with Generalized Boosted method
+
+```{r echo=True}
+
+set.seed(5678)
+modGBM <- train(classe ~ ., data = trainData, method="gbm", verbose=FALSE, trControl = ctrl)
+predGBM <- predict(modGBM, validData)
+confGBM <- confusionMatrix(validData$classe,predGBM)
+confGBM
+confGBM$overall[1]
+
+```
+
+The accuracy in all the three methods are as follows
+
+Accuracy of Trees method = `r confRpart$overall[1]`
+Accuracy of Random forest method = `r confRF$overall[1]`
+Accuracy of gbm method = `r confGBM$overall[1]`
+
+The accuracy is better in Random Forest method with `r confRpart$overall[1]`, so the out of sample error rate is 0.007. Therefore Random Forest method is chosen for the prediction.
+
+## Final Prediction
+
+
+```{r echo=TRUE}
+
+predFinal <- predict(modRF,test_clean)
+predFinal
+
+```
+
