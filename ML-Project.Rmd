@@ -38,6 +38,8 @@ suppressWarnings(suppressMessages(library(rattle)))
 suppressWarnings(suppressMessages(library(randomForest)))
 suppressWarnings(suppressMessages(library(gbm)))
 suppressWarnings(suppressMessages(library(reshape2)))
+suppressWarnings(suppressMessages(library(plyr)))
+
 
 training <- read.csv("~/pml-training.csv", na.strings = c("NA","","#DIV/0!"))
 testing <- read.csv("~/pml-testing.csv", na.strings = c("NA","","#DIV/0!"))
@@ -107,17 +109,7 @@ Prediction with trees, randon Forest, and boosted predicted with "gbm" methods a
 
 set.seed(5678)
 modRpart <- train(classe ~ ., method = "rpart", data = trainData, trControl = ctrl)
-
-```
-
-```{r echo=TRUE}
-
 fancyRpartPlot(modRpart$finalModel)
-
-```
-
-```{r echo=TRUE}
-
 predRpart <- predict(modRpart,validData)
 confRpart <- confusionMatrix(validData$classe,predRpart)
 confRpart
@@ -140,7 +132,7 @@ confRF$overall[1]
 
 ### Prediction with Generalized Boosted method
 
-```{r echo=True}
+```{r echo=TRUE}
 
 set.seed(5678)
 modGBM <- train(classe ~ ., data = trainData, method="gbm", verbose=FALSE, trControl = ctrl)
@@ -157,7 +149,7 @@ Accuracy of Trees method = `r confRpart$overall[1]`
 Accuracy of Random forest method = `r confRF$overall[1]`
 Accuracy of gbm method = `r confGBM$overall[1]`
 
-The accuracy is better in Random Forest method with `r confRpart$overall[1]`, so the out of sample error rate is 0.007. Therefore Random Forest method is chosen for the prediction.
+The accuracy is better in Random Forest method with `r confRF$overall[1]`, so the out of sample error rate is 0.0067969. Therefore Random Forest method is chosen for the prediction.
 
 ## Final Prediction
 
