@@ -28,7 +28,7 @@ The data for this project come from this source: http://groupware.les.inf.puc-ri
 
 ### Data Processing
 
-Reading the Data
+####Reading the Data
 
 ```{r echo=TRUE}
 
@@ -46,7 +46,7 @@ testing <- read.csv("~/pml-testing.csv", na.strings = c("NA","","#DIV/0!"))
 
 ```
 
-Cleaning data
+####Cleaning data
 
 In order to find the less effective predictors we need to verify the number of values exist for each predictor and then decide. We will check how many "NA" values exist for each predictor and verify.
 
@@ -146,10 +146,12 @@ confGBM$overall[1]
 The accuracy in all the three methods are as follows
 
 Accuracy of Trees method = `r confRpart$overall[1]`
+
 Accuracy of Random forest method = `r confRF$overall[1]`
+
 Accuracy of gbm method = `r confGBM$overall[1]`
 
-The accuracy is better in Random Forest method with `r confRF$overall[1]`, so the out of sample error rate is 0.0067969. Therefore Random Forest method is chosen for the prediction.
+The accuracy is better in Random Forest method with `r confRF$overall[1]`, so the out of sample error rate is `r 1-confRF$overall[1]`. Therefore Random Forest method is chosen for the prediction.
 
 ## Final Prediction
 
